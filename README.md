@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Aunt Rosa</title>
     <style>
-        :root { --pink: #d81b60; --light-pink: #fff0f5; --yellow: #fff9c4; }
+        :root { --pink: #d81b60; --light-pink: #fff0f5; }
         body { font-family: -apple-system, sans-serif; background-color: var(--light-pink); display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
         .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 420px; }
         h1 { color: var(--pink); text-align: center; margin-bottom: 20px; }
@@ -17,7 +17,8 @@
         
         .input-box { background: #fdfdfd; padding: 20px; border-radius: 20px; border: 1px solid #eee; text-align: center; }
         label { display: block; margin-bottom: 12px; font-weight: bold; color: #555; }
-        input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; -webkit-appearance: none; }
+        input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; -webkit-appearance: none; background: white; }
+        
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-main { background-color: var(--pink); color: white; margin-top: 10px; }
         .btn-today { background-color: #f06292; color: white; padding: 10px; font-size: 0.9rem; margin-bottom: 5px; }
@@ -25,11 +26,12 @@
         .history { margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         th { text-align: left; color: #888; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 10px; }
-        td { border-bottom: 1px solid #f9f9f9; padding: 12px 2px; }
+        td { border-bottom: 1px solid #f9f9f9; padding: 12px 2px; height: 50px; }
         
-        .row-virtual { background-color: var(--yellow); font-style: italic; }
-        .btn-edit { background: none; color: #f57c00; font-size: 1.2rem; padding: 5px; cursor: pointer; border: none; }
-        .btn-del { color: #ff1744; background: none; width: auto; padding: 5px; font-size: 1.1rem; border: none; }
+        .row-virtual { font-style: italic; color: #888; }
+        .btn-edit { background: none; font-size: 1.2rem; cursor: pointer; border: none; padding: 5px; }
+        .btn-del { color: #ff1744; background: none; border: none; font-size: 1.1rem; cursor: pointer; }
+        .duration-tag { color: #888; font-style: italic; }
     </style>
 </head>
 <body>
@@ -68,7 +70,6 @@
     let isWaitingForEnd = false;
     let cachedAvgCycle = 28;
     let cachedAvgDuration = 5;
-    let nextPredictedStart = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         refreshUI();
@@ -103,9 +104,9 @@
     }
 
     function refreshUI() {
+        calculateStats();
         const history = getHistory();
         setMode(history.length > 0 && !history[0].end);
-        calculateStats();
         renderHistory();
     }
 
@@ -116,27 +117,15 @@
             cachedAvgDuration = 5;
             return;
         }
-
-        // Sortieren nach Datum (alt -> neu)
         const sorted = [...history].sort((a,b) => new Date(a.start) - new Date(b.start));
-        
-        // Zyklen berechnen (Beginn zu Beginn) mit Lückenerkennung
         let cycleLengths = [];
         for (let i = 0; i < sorted.length - 1; i++) {
             const diff = (new Date(sorted[i+1].start) - new Date(sorted[i].start)) / 86400000;
-            if (diff >= 20 && diff <= 45) { // Nur realistische Zyklen werten
-                cycleLengths.push(diff);
-            }
+            if (diff >= 20 && diff <= 45) cycleLengths.push(diff);
         }
-
-        // Dynamische Auswahl der Anzahl der Zyklen
-        let count = 3;
-        if (cycleLengths.length > 10) count = 12;
-        else if (cycleLengths.length > 4) count = 6;
-        
+        let count = cycleLengths.length > 10 ? 12 : (cycleLengths.length > 4 ? 6 : 3);
         const recentCycles = cycleLengths.slice(-count);
         cachedAvgCycle = recentCycles.length > 0 ? recentCycles.reduce((a,b)=>a+b,0)/recentCycles.length : 28;
-        
         const durations = history.map(e => (new Date(e.end)-new Date(e.start))/86400000 + 1);
         cachedAvgDuration = durations.reduce((a,b)=>a+b,0)/durations.length;
     }
@@ -145,41 +134,33 @@
         const history = getHistory();
         const tbody = document.querySelector('#history-table tbody');
         tbody.innerHTML = '';
-
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        // Vorhersage berechnen
         if (history.length > 0) {
             let lastStart = new Date(history[0].start);
-            nextPredictedStart = new Date(lastStart);
-            
-            // Hochrechnen, falls vergessen
+            let nextPredictedStart = new Date(lastStart);
             while (nextPredictedStart <= today) {
                 nextPredictedStart.setDate(nextPredictedStart.getDate() + Math.round(cachedAvgCycle));
             }
-            
             let nextPredictedEnd = new Date(nextPredictedStart);
             nextPredictedEnd.setDate(nextPredictedStart.getDate() + Math.round(cachedAvgDuration) - 1);
-            
             document.getElementById('next-range').innerText = `${formatDateShort(nextPredictedStart)} – ${formatDateShort(nextPredictedEnd)}`;
 
-            // VIRTUELLER EINTRAG (GELB)
-            // Wenn der vorausberechnete Termin HEUTE oder in der VERGANGENHEIT liegt, 
-            // und wir gerade NICHT in einer aktiven Periode sind.
-            let expectedThisCycle = new Date(lastStart);
-            expectedThisCycle.setDate(lastStart.getDate() + Math.round(cachedAvgCycle));
-
-            if (!isWaitingForEnd && expectedThisCycle <= today) {
-                let virtualEnd = new Date(expectedThisCycle);
-                virtualEnd.setDate(expectedThisCycle.getDate() + Math.round(cachedAvgDuration) - 1);
+            // VORSCHLAG-ZEILE (Wird nur angezeigt, wenn kein aktueller Zyklus läuft)
+            let expectedStart = new Date(lastStart);
+            expectedStart.setDate(lastStart.getDate() + Math.round(cachedAvgCycle));
+            
+            if (!isWaitingForEnd && expectedStart <= today) {
+                let virtualEnd = new Date(expectedStart);
+                virtualEnd.setDate(expectedStart.getDate() + Math.round(cachedAvgDuration) - 1);
                 
                 tbody.innerHTML += `<tr class="row-virtual">
-                    <td>${formatDateLong(expectedThisCycle)}</td>
+                    <td>${formatDateLong(expectedStart)}</td>
                     <td>${formatDateLong(virtualEnd)}</td>
                     <td>Vorschlag</td>
                     <td align="right">
-                        <button class="btn-edit" onclick="editVirtual('${expectedThisCycle.toISOString().split('T')[0]}')">✏️</button>
+                        <button class="btn-edit" onclick="triggerEdit('${expectedStart.toISOString().split('T')[0]}')">✏️</button>
                     </td>
                 </tr>`;
             }
@@ -200,10 +181,12 @@
         });
     }
 
-    function editVirtual(dateStr) {
-        document.getElementById('date-field').value = dateStr;
-        document.getElementById('date-field').focus();
-        alert("Datum wurde ins Feld geladen. Klicke auf 'Anfang speichern', um es zu bestätigen.");
+    function triggerEdit(dateStr) {
+        const field = document.getElementById('date-field');
+        field.value = dateStr;
+        // Fokus und Klick simulieren, um Kalender auf Mobilgeräten zu öffnen
+        field.focus();
+        field.click(); 
     }
 
     function formatDateShort(d) { return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'}); }

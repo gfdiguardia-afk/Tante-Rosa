@@ -29,6 +29,9 @@
         td { border-bottom: 1px solid #f9f9f9; padding: 12px 2px; height: 50px; }
         
         .row-virtual { font-style: italic; color: #888; }
+        /* Neue Klassen für die farbliche Markierung */
+        .row-suggested.highlight-yellow { background-color: #fff9c4; }
+        
         .btn-edit { background: none; font-size: 1.2rem; cursor: pointer; border: none; padding: 5px; }
         .btn-del { color: #ff1744; background: none; border: none; font-size: 1.1rem; cursor: pointer; }
         .duration-tag { color: #888; font-style: italic; }
@@ -46,7 +49,7 @@
 
     <div class="input-box">
         <label id="input-label">Wann ging es los?</label>
-        <input type="date" id="date-field">
+        <input type="date" id="date-field" oninput="removeHighlight()">
         <button class="btn-today" onclick="setToday()">Heute</button>
         <button class="btn-main" id="save-btn" onclick="handleSave()">Anfang speichern</button>
     </div>
@@ -84,7 +87,15 @@
         document.getElementById('main-title').innerText = isWaitingForEnd ? "Aunt Rosa 🌸" : "Aunt Rosa 🍆";
     }
 
-    function setToday() { document.getElementById('date-field').valueAsDate = new Date(); }
+    function setToday() { 
+        document.getElementById('date-field').valueAsDate = new Date(); 
+        removeHighlight();
+    }
+
+    function removeHighlight() {
+        const row = document.querySelector('.row-suggested');
+        if (row) row.classList.remove('highlight-yellow');
+    }
 
     function handleSave() {
         const dateVal = document.getElementById('date-field').value;
@@ -147,7 +158,7 @@
             nextPredictedEnd.setDate(nextPredictedStart.getDate() + Math.round(cachedAvgDuration) - 1);
             document.getElementById('next-range').innerText = `${formatDateShort(nextPredictedStart)} – ${formatDateShort(nextPredictedEnd)}`;
 
-            // VORSCHLAG-ZEILE (Wird nur angezeigt, wenn kein aktueller Zyklus läuft)
+            // VORSCHLAG-ZEILE
             let expectedStart = new Date(lastStart);
             expectedStart.setDate(lastStart.getDate() + Math.round(cachedAvgCycle));
             
@@ -155,13 +166,21 @@
                 let virtualEnd = new Date(expectedStart);
                 virtualEnd.setDate(expectedStart.getDate() + Math.round(cachedAvgDuration) - 1);
                 
-                tbody.innerHTML += `<tr class="row-virtual">
-                    <td>${formatDateLong(expectedStart)}</td>
+                tbody.innerHTML += `<tr class="row-virtual row-suggested">
+                    <td>${formatDateLong(expectedStart)} <button class="btn-edit" onclick="triggerEdit('${expectedStart.toISOString().split('T')[0]}')">✏️</button></td>
                     <td>${formatDateLong(virtualEnd)}</td>
                     <td>Vorschlag</td>
-                    <td align="right">
-                        <button class="btn-edit" onclick="triggerEdit('${expectedStart.toISOString().split('T')[0]}')">✏️</button>
-                    </td>
+                    <td align="right"></td>
+                </tr>`;
+            } else if (isWaitingForEnd) {
+                // Falls wir auf das Ende warten, schlagen wir das Enddatum vor
+                let virtualEnd = new Date(lastStart);
+                virtualEnd.setDate(lastStart.getDate() + Math.round(cachedAvgDuration) - 1);
+                tbody.innerHTML += `<tr class="row-virtual row-suggested">
+                    <td>${formatDateLong(lastStart)}</td>
+                    <td>${formatDateLong(virtualEnd)} <button class="btn-edit" onclick="triggerEdit('${virtualEnd.toISOString().split('T')[0]}')">✏️</button></td>
+                    <td>Vorschlag</td>
+                    <td align="right"></td>
                 </tr>`;
             }
         }
@@ -184,7 +203,10 @@
     function triggerEdit(dateStr) {
         const field = document.getElementById('date-field');
         field.value = dateStr;
-        // Fokus und Klick simulieren, um Kalender auf Mobilgeräten zu öffnen
+        // Zeile gelb markieren
+        const row = document.querySelector('.row-suggested');
+        if (row) row.classList.add('highlight-yellow');
+        
         field.focus();
         field.click(); 
     }

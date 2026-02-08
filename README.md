@@ -9,7 +9,7 @@
     <style>
         :root { --pink: #d81b60; --light-pink: #fff0f5; }
         body { font-family: -apple-system, sans-serif; background-color: var(--light-pink); display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 420px; }
         h1 { color: var(--pink); text-align: center; margin-bottom: 20px; }
         .prediction { background: linear-gradient(135deg, #ffebee, #fce4ec); border: 2px solid var(--pink); padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; }
         .prediction p { margin: 0; color: #ad1457; font-weight: bold; }
@@ -19,15 +19,17 @@
         
         .input-box { background: #fdfdfd; padding: 20px; border-radius: 20px; border: 1px solid #eee; text-align: center; }
         label { display: block; margin-bottom: 12px; font-weight: bold; color: #555; }
-        input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; -webkit-appearance: none; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-main { background-color: var(--pink); color: white; margin-top: 10px; }
         .btn-today { background-color: #f06292; color: white; padding: 10px; font-size: 0.9rem; margin-bottom: 5px; }
 
         .history { margin-top: 30px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        td { border-bottom: 1px solid #f9f9f9; padding: 12px 5px; }
-        .btn-del { color: #ccc; background: none; width: auto; padding: 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; color: #888; font-size: 0.7rem; text-transform: uppercase; padding-bottom: 10px; }
+        td { border-bottom: 1px solid #f9f9f9; padding: 12px 2px; }
+        .btn-del { color: #ff1744; background: none; width: auto; padding: 5px; font-size: 1.1rem; font-weight: bold; }
+        .duration-tag { color: #888; font-style: italic; }
     </style>
 </head>
 <body>
@@ -50,7 +52,14 @@
 
     <div class="history">
         <table id="history-table">
-            <thead><tr><th align="left">Von</th><th align="left">Bis</th><th></th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Von</th>
+                    <th>Bis</th>
+                    <th>Dauer</th>
+                    <th></th>
+                </tr>
+            </thead>
             <tbody></tbody>
         </table>
     </div>
@@ -104,15 +113,22 @@
         const tbody = document.querySelector('#history-table tbody');
         tbody.innerHTML = '';
         history.forEach(entry => {
+            let durationText = "";
+            if(entry.start && entry.end) {
+                const diff = Math.round((new Date(entry.end) - new Date(entry.start)) / 86400000) + 1;
+                durationText = diff + " Tage";
+            }
             tbody.innerHTML += `<tr>
-                <td>${formatDate(entry.start)}</td>
-                <td>${entry.end ? formatDate(entry.end) : '...'}</td>
+                <td>${formatDateLong(entry.start)}</td>
+                <td>${entry.end ? formatDateLong(entry.end) : '...'}</td>
+                <td class="duration-tag">${durationText}</td>
                 <td align="right"><button class="btn-del" onclick="deleteItem(${entry.id})">✕</button></td>
             </tr>`;
         });
     }
 
-    function formatDate(d) { return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'}); }
+    function formatDateShort(d) { return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'}); }
+    function formatDateLong(d) { return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'}); }
 
     function calculate() {
         const history = getHistory().filter(e => e.start && e.end);
@@ -136,47 +152,31 @@
         nextEnd.setDate(nextStart.getDate() + Math.round(avgDur));
         globalNextEnd = new Date(nextEnd);
 
-        document.getElementById('next-range').innerText = `${formatDate(nextStart)} – ${formatDate(nextEnd)}`;
+        document.getElementById('next-range').innerText = `${formatDateShort(nextStart)} – ${formatDateShort(nextEnd)}`;
         document.getElementById('remind-btn').style.display = 'block';
     }
 
     function addToCalendar() {
         if (!globalNextStart || !globalNextEnd) return;
-        
-        // ICS Format benötigt YYYYMMDD
-        const formatDateICS = (date) => {
-            return date.toISOString().split('T')[0].replace(/-/g, "");
-        };
-
+        const formatDateICS = (date) => date.toISOString().split('T')[0].replace(/-/g, "");
         const start = formatDateICS(globalNextStart);
-        // Für ganztägige Ereignisse im ICS-Format muss das Enddatum der Tag NACH dem eigentlichen Ende sein
         const calendarEnd = new Date(globalNextEnd);
         calendarEnd.setDate(calendarEnd.getDate() + 1);
         const end = formatDateICS(calendarEnd);
 
         const icsContent = [
-            "BEGIN:VCALENDAR",
-            "VERSION:2.0",
-            "PRODID:-//Tante Rosa//Period Tracker//DE",
-            "BEGIN:VEVENT",
-            `DTSTART;VALUE=DATE:${start}`,
-            `DTEND;VALUE=DATE:${end}`,
-            "SUMMARY:Tante Rosa 🌸",
-            "DESCRIPTION:Voraussichtlicher Zeitraum deiner Periode",
-            "BEGIN:VALARM",
-            "TRIGGER:-P1D", // Erinnerung 1 Tag vorher
-            "ACTION:DISPLAY",
-            "DESCRIPTION:Erinnerung: Tante Rosa kommt morgen",
-            "END:VALARM",
-            "END:VEVENT",
-            "END:VCALENDAR"
+            "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT",
+            `DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`,
+            "SUMMARY:Tante Rosa 🌸", "DESCRIPTION:Voraussichtlicher Zeitraum",
+            "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:Tante Rosa kommt morgen", "END:VALARM",
+            "END:VEVENT", "END:VCALENDAR"
         ].join("%0A");
 
         window.open("data:text/calendar;charset=utf8," + icsContent);
     }
 
     function deleteItem(id) {
-        if(confirm("Löschen?")) {
+        if(confirm("Eintrag löschen?")) {
             let history = getHistory().filter(e => e.id !== id);
             localStorage.setItem('periodHistory', JSON.stringify(history));
             refreshUI();

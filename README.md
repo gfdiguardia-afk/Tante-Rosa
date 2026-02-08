@@ -8,65 +8,26 @@
     <title>Tante Rosa</title>
     <style>
         :root { --pink: #d81b60; --light-pink: #fff0f5; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            background-color: var(--light-pink); 
-            display: flex; 
-            justify-content: center; 
-            padding: 40px 20px; 
-            margin: 0; 
-        }
-        .card { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 25px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            width: 100%; 
-            max-width: 400px; 
-        }
-        h1 { color: var(--pink); text-align: center; margin-bottom: 20px; font-size: 1.8rem; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--light-pink); display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h1 { color: var(--pink); text-align: center; margin-bottom: 20px; }
+        .prediction { background: linear-gradient(135deg, #ffebee, #fce4ec); border: 2px solid var(--pink); padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 20px; }
+        .prediction p { margin: 0; color: #ad1457; font-weight: bold; }
+        .prediction h2 { margin: 10px 0 10px 0; font-size: 1.4rem; color: var(--pink); }
         
-        .prediction { 
-            background: linear-gradient(135deg, #ffebee, #fce4ec); 
-            border: 2px solid var(--pink); 
-            padding: 20px; 
-            border-radius: 20px; 
-            text-align: center; 
-            margin-bottom: 25px; 
-        }
-        .prediction p { margin: 0; color: #ad1457; font-weight: bold; font-size: 0.9rem; }
-        .prediction h2 { margin: 10px 0 0 0; font-size: 1.4rem; color: var(--pink); }
+        .btn-reminder { background-color: white; color: var(--pink); border: 1px solid var(--pink); padding: 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; display: none; margin: 10px auto 0 auto; width: 100%; }
+        
+        .input-box { background: #fdfdfd; padding: 20px; border-radius: 20px; border: 1px solid #eee; text-align: center; }
+        label { display: block; margin-bottom: 12px; font-weight: bold; color: #555; }
+        input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn-main { background-color: var(--pink); color: white; margin-top: 10px; }
+        .btn-today { background-color: #f06292; color: white; padding: 10px; font-size: 0.9rem; margin-bottom: 5px; }
 
-        .input-box { 
-            background: #fdfdfd; 
-            padding: 20px; 
-            border-radius: 20px; 
-            border: 1px solid #eee; 
-            text-align: center; 
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-        label { display: block; margin-bottom: 12px; font-weight: bold; color: #555; font-size: 1.1rem; }
-        input[type="date"] { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ddd; 
-            border-radius: 12px; 
-            font-size: 1rem; 
-            margin-bottom: 10px; 
-            box-sizing: border-box;
-            -webkit-appearance: none;
-        }
-        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-main { background-color: var(--pink); color: white; margin-top: 10px; box-shadow: 0 4px 10px rgba(216, 27, 96, 0.3); }
-        .btn-main:active { transform: scale(0.98); }
-        .btn-today { background-color: #f06292; color: white; padding: 10px; font-size: 0.9rem; }
-
-        .history { margin-top: 35px; }
-        .history h3 { font-size: 1rem; color: #888; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .history { margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { border-bottom: 1px solid #f9f9f9; padding: 12px 5px; text-align: left; }
-        .btn-del { color: #ccc; background: none; font-size: 1.2rem; width: auto; padding: 0; font-weight: normal; }
-        .btn-del:hover { color: var(--pink); }
+        td { border-bottom: 1px solid #f9f9f9; padding: 12px 5px; }
+        .btn-del { color: #ccc; background: none; width: auto; padding: 0; }
     </style>
 </head>
 <body>
@@ -75,8 +36,9 @@
     <h1>Tante Rosa 🌸</h1>
 
     <div class="prediction">
-        <p id="predict-label">Voraussichtlicher Zeitraum:</p>
+        <p>Voraussichtlicher Zeitraum:</p>
         <h2 id="next-range">Berechnung läuft...</h2>
+        <button id="remind-btn" class="btn-reminder" onclick="addToCalendar()">📅 Zeitraum im Kalender speichern</button>
     </div>
 
     <div class="input-box">
@@ -87,71 +49,46 @@
     </div>
 
     <div class="history">
-        <h3>Verlauf</h3>
         <table id="history-table">
-            <thead><tr><th>Von</th><th>Bis</th><th></th></tr></thead>
+            <thead><tr><th align="left">Von</th><th align="left">Bis</th><th></th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
-    
-    <button onclick="clearAll()" style="background:none; color:#ddd; font-size:0.7rem; margin-top:30px; font-weight: normal;">Daten zurücksetzen</button>
 </div>
 
 <script>
     let isWaitingForEnd = false;
+    let globalNextStart = null;
+    let globalNextEnd = null;
 
-    // App Start
     document.addEventListener('DOMContentLoaded', () => {
         const history = getHistory();
-        // Modus-Check: Fehlt beim letzten Eintrag das Enddatum?
-        if (history.length > 0 && !history[0].end) {
-            setMode(true);
-        } else {
-            setMode(false);
-        }
+        setMode(history.length > 0 && !history[0].end);
         refreshUI();
     });
 
-    function getHistory() {
-        return JSON.parse(localStorage.getItem('periodHistory')) || [];
+    function getHistory() { return JSON.parse(localStorage.getItem('periodHistory')) || []; }
+
+    function setMode(waiting) {
+        isWaitingForEnd = waiting;
+        document.getElementById('input-label').innerText = isWaitingForEnd ? "Wann war es zu Ende?" : "Wann ging es los?";
+        document.getElementById('save-btn').innerText = isWaitingForEnd ? "Ende speichern" : "Anfang speichern";
     }
 
-    function setMode(waitingForEnd) {
-        isWaitingForEnd = waitingForEnd;
-        const label = document.getElementById('input-label');
-        const btn = document.getElementById('save-btn');
-        if (isWaitingForEnd) {
-            label.innerText = "Wann war es zu Ende?";
-            btn.innerText = "Ende speichern";
-        } else {
-            label.innerText = "Wann ging es los?";
-            btn.innerText = "Anfang speichern";
-        }
-    }
-
-    function setToday() {
-        document.getElementById('date-field').valueAsDate = new Date();
-    }
+    function setToday() { document.getElementById('date-field').valueAsDate = new Date(); }
 
     function handleSave() {
         const dateVal = document.getElementById('date-field').value;
-        if (!dateVal) return alert("Bitte wähle ein Datum!");
-
+        if (!dateVal) return alert("Datum wählen!");
         let history = getHistory();
-
         if (!isWaitingForEnd) {
-            // Neuer Eintrag: Startdatum
             history.unshift({ id: Date.now(), start: dateVal, end: null });
             setMode(true);
         } else {
-            // Bestehender Eintrag: Enddatum hinzufügen
-            if (new Date(dateVal) < new Date(history[0].start)) {
-                return alert("Das Ende kann nicht vor dem Anfang liegen!");
-            }
+            if (new Date(dateVal) < new Date(history[0].start)) return alert("Fehler: Ende vor Anfang!");
             history[0].end = dateVal;
             setMode(false);
         }
-
         localStorage.setItem('periodHistory', JSON.stringify(history));
         document.getElementById('date-field').value = "";
         refreshUI();
@@ -169,74 +106,80 @@
         history.forEach(entry => {
             tbody.innerHTML += `<tr>
                 <td>${formatDate(entry.start)}</td>
-                <td>${entry.end ? formatDate(entry.end) : '<i>läuft...</i>'}</td>
-                <td style="text-align:right"><button class="btn-del" onclick="deleteItem(${entry.id})">✕</button></td>
+                <td>${entry.end ? formatDate(entry.end) : '...'}</td>
+                <td align="right"><button class="btn-del" onclick="deleteItem(${entry.id})">✕</button></td>
             </tr>`;
         });
     }
 
-    function formatDate(d) {
-        return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'});
-    }
+    function formatDate(d) { return new Date(d).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'}); }
 
     function calculate() {
         const history = getHistory().filter(e => e.start && e.end);
-        const display = document.getElementById('next-range');
-        
-        if (history.length < 2) {
-            display.innerText = "Mehr Daten nötig";
-            return;
-        }
+        if (history.length < 2) return;
 
-        // Chronologisch sortieren (alt nach neu)
         const sorted = [...history].sort((a,b) => new Date(a.start) - new Date(b.start));
-        
-        // 1. Durchschnittliche Zykluslänge (Start zu Start)
         let intervals = [];
         for (let i = 0; i < sorted.length - 1; i++) {
-            const diff = (new Date(sorted[i+1].start) - new Date(sorted[i].start)) / (1000*60*60*24);
-            // FILTER: Nur Intervalle zwischen 20 und 35 Tagen berücksichtigen
-            if (diff >= 20 && diff <= 35) {
-                intervals.push(diff);
-            }
+            const diff = (new Date(sorted[i+1].start) - new Date(sorted[i].start)) / 86400000;
+            if (diff >= 20 && diff <= 35) intervals.push(diff);
         }
-        
-        // Fallback: Wenn keine Intervalle im 35-Tage-Fenster, nutze 28 als Standard
         const avgCycle = intervals.length > 0 ? intervals.reduce((a,b)=>a+b,0)/intervals.length : 28;
+        const avgDur = history.map(e => (new Date(e.end)-new Date(e.start))/86400000).reduce((a,b)=>a+b,0)/history.length;
 
-        // 2. Durchschnittliche Periodendauer (Tage der Blutung)
-        let durations = history.map(e => (new Date(e.end)-new Date(e.start))/(1000*60*60*24));
-        const avgDuration = durations.reduce((a,b)=>a+b,0)/durations.length;
-
-        // 3. Vorhersage-Logik
-        let lastKnownStart = new Date(sorted[sorted.length-1].start);
-        let nextStart = new Date(lastKnownStart);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-
-        // Falls das Datum in der Vergangenheit liegt, Zyklus addieren (Schutz vor Lücken)
-        while (nextStart < today) {
-            nextStart.setDate(nextStart.getDate() + Math.round(avgCycle));
-        }
-
+        let nextStart = new Date(sorted[sorted.length-1].start);
+        const today = new Date(); today.setHours(0,0,0,0);
+        while (nextStart <= today) { nextStart.setDate(nextStart.getDate() + Math.round(avgCycle)); }
+        
+        globalNextStart = new Date(nextStart);
         let nextEnd = new Date(nextStart);
-        nextEnd.setDate(nextStart.getDate() + Math.round(avgDuration));
+        nextEnd.setDate(nextStart.getDate() + Math.round(avgDur));
+        globalNextEnd = new Date(nextEnd);
 
-        display.innerText = `${formatDate(nextStart)} – ${formatDate(nextEnd)}`;
+        document.getElementById('next-range').innerText = `${formatDate(nextStart)} – ${formatDate(nextEnd)}`;
+        document.getElementById('remind-btn').style.display = 'block';
+    }
+
+    function addToCalendar() {
+        if (!globalNextStart || !globalNextEnd) return;
+        
+        // ICS Format benötigt YYYYMMDD
+        const formatDateICS = (date) => {
+            return date.toISOString().split('T')[0].replace(/-/g, "");
+        };
+
+        const start = formatDateICS(globalNextStart);
+        // Für ganztägige Ereignisse im ICS-Format muss das Enddatum der Tag NACH dem eigentlichen Ende sein
+        const calendarEnd = new Date(globalNextEnd);
+        calendarEnd.setDate(calendarEnd.getDate() + 1);
+        const end = formatDateICS(calendarEnd);
+
+        const icsContent = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Tante Rosa//Period Tracker//DE",
+            "BEGIN:VEVENT",
+            `DTSTART;VALUE=DATE:${start}`,
+            `DTEND;VALUE=DATE:${end}`,
+            "SUMMARY:Tante Rosa 🌸",
+            "DESCRIPTION:Voraussichtlicher Zeitraum deiner Periode",
+            "BEGIN:VALARM",
+            "TRIGGER:-P1D", // Erinnerung 1 Tag vorher
+            "ACTION:DISPLAY",
+            "DESCRIPTION:Erinnerung: Tante Rosa kommt morgen",
+            "END:VALARM",
+            "END:VEVENT",
+            "END:VCALENDAR"
+        ].join("%0A");
+
+        window.open("data:text/calendar;charset=utf8," + icsContent);
     }
 
     function deleteItem(id) {
-        if(confirm("Eintrag löschen?")) {
+        if(confirm("Löschen?")) {
             let history = getHistory().filter(e => e.id !== id);
             localStorage.setItem('periodHistory', JSON.stringify(history));
-            location.reload();
-        }
-    }
-
-    function clearAll() {
-        if(confirm("Bist du sicher? Alle Daten gehen verloren!")) {
-            localStorage.clear();
-            location.reload();
+            refreshUI();
         }
     }
 </script>
